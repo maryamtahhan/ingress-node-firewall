@@ -19,6 +19,7 @@ import (
 	infv1alpha1 "github.com/openshift/ingress-node-firewall/api/v1alpha1"
 	"github.com/openshift/ingress-node-firewall/pkg/ebpfsyncer"
 	"github.com/openshift/ingress-node-firewall/pkg/metrics"
+	"github.com/openshift/ingress-node-firewall/pkg/pypcapngsyncer"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -111,14 +112,21 @@ func (r *IngressNodeFirewallNodeStateReconciler) SetupWithManager(mgr ctrl.Manag
 
 // mock shall be nil for production but can be overwritten for mock tests.
 var mock ebpfsyncer.EbpfSyncer = nil
+var pymock pypcapngsyncer.PypcapngSyncer = nil
 
 // reconcileResource reconciles the resource by getting the EbpfDaemon singleton's SyncInterfaceIngressRules method.
 // For mock tests, var mock can be overwritten.
 func (r *IngressNodeFirewallNodeStateReconciler) reconcileResource(
 	ctx context.Context, instance *infv1alpha1.IngressNodeFirewallNodeState, isDelete bool) (ctrl.Result, error) {
-	if err := ebpfsyncer.GetEbpfSyncer(ctx, r.Log, r.Stats, mock).SyncInterfaceIngressRules(instance.Spec.InterfaceIngressRules, isDelete); err != nil {
+
+	if err := pypcapngsyncer.GetPypcapngSyncer(ctx, r.Log, r.Stats, pymock).SyncInterfaceIngressRules(instance.Spec.InterfaceIngressRules, isDelete); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "FailedToSyncIngressNodeFirewallResources")
 	}
+
+	// Disable for the POC
+	// if err := ebpfsyncer.GetEbpfSyncer(ctx, r.Log, r.Stats, mock).SyncInterfaceIngressRules(instance.Spec.InterfaceIngressRules, isDelete); err != nil {
+	// 	return ctrl.Result{}, errors.Wrapf(err, "FailedToSyncIngressNodeFirewallResources")
+	// }
 	return ctrl.Result{}, nil
 }
 

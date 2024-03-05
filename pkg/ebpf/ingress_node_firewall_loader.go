@@ -136,6 +136,14 @@ func (infc *IngNodeFwController) IngressNodeFwRulesLoader(
 	}
 	klog.Infof("Ingress node firewall map Info: %+v with FD %s", info, infc.objs.BpfMaps.IngressNodeFirewallTableMap.String())
 
+	klog.Infof("Ingress node firewall: CONVERT STUFF TO INVOKE PYTHON TOOLSET")
+	// cmd := exec.Command("xdp-loader", "unload", ifname, "--all")
+
+	// if err := cmd.Run(); err != nil && err.Error() != "exit status 1" { // exit status 1 means no prog to unload
+	// 	logging.Errorf("Error removing BPF program from device: %v", err)
+	// 	return errors.New("Error removing BPF program from device")
+	// }
+
 	// Convert IngressNodeFirewallRules into data that can be written to the BPF map.
 	// Build a map of valid ebpfKeys pointing to the ebpfRules that should be associated to them.
 	ebpfKeyToRules := make(map[BpfLpmIpKeySt]BpfRulesValSt)

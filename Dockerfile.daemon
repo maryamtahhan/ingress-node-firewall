@@ -5,27 +5,33 @@ COPY . .
 RUN ./hack/build-daemon.sh
 
 FROM quay.io/centos/centos:stream8 AS build-python
-RUN dnf install -y git python3   \
-    python3-pip \
-    python3-virtualenv && \
-    python3 -m venv /venv && \
-    /venv/bin/pip install --upgrade pip setuptools wheel
+RUN dnf install -y git
 
 WORKDIR /
 RUN git clone https://github.com/kot-begemot-uk/pypcap-ng.git
 WORKDIR /pypcap-ng
 RUN echo "ply==3.11" > requirements.txt
 
-# # Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
-FROM build-python AS build-venv
-COPY --from=build-python /pypcap-ng/requirements.txt /requirements.txt
-RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
+# # # Build the virtualenv as a separate step: Only re-execute this step when requirements.txt changes
+# FROM build-python AS build-venv
+# COPY --from=build-python /pypcap-ng/requirements.txt /requirements.txt
+# RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
 
 FROM quay.io/centos/centos:stream8
-RUN dnf install -y python3
-RUN dnf clean all
+RUN dnf install -y python3  \
+    python3-pip \
+    python3-virtualenv \
+    iptables-services && \
+    python3 -m venv /venv && \
+    /venv/bin/pip install --upgrade pip setuptools wheel && \
+    /venv/bin/pip install ply==3.11
+
+#RUN dnf clean all
+COPY --from=build-python /pypcap-ng /pypcap-ng
+RUN /venv/bin/python3 /pypcap-ng/compile.py -h
+# RUN /venv/bin/pip install --disable-pip-version-check -r /pypcap-ng/requirements.txt
+
+
 COPY --from=builder /go/src/github.com/openshift/ingress-node-firewall/bin/daemon /usr/bin/
 COPY --from=builder /go/src/github.com/openshift/ingress-node-firewall/bin/syslog /usr/bin/
-COPY --from=build-venv /venv /venv
-COPY --from=build-python /pypcap-ng /pypcap-ng
 CMD ["/usr/bin/daemon"]
